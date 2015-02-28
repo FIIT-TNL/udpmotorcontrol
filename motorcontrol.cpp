@@ -10,6 +10,19 @@
 #include "scchk.h"
 #include "dcdriver.h"
 
+int setupUDP(unsigned short port) {
+	int sfd = SC_CHK(socket, AF_INET, SOCK_DGRAM, 0);
+
+	struct sockaddr_in saddr;
+	saddr.sin_family = AF_INET;
+	saddr.sin_port = htons(port);
+	saddr.sin_addr.s_addr = INADDR_ANY;
+
+	SC_CHK(bind, sfd, (struct sockaddr *)&saddr, sizeof(saddr));
+
+	return sfd;
+}
+
 int main(int argc, char **argv) {
 	try {
 		unsigned short port = 5566;
@@ -24,15 +37,9 @@ int main(int argc, char **argv) {
 		
 		if(argc > 5) sscanf(argv[5], "%hu", &port);
 
-		int sfd = SC_CHK(socket, AF_INET, SOCK_DGRAM, 0);
+		int sfd = setupUDP(port);
 
 		struct sockaddr_in saddr;
-		saddr.sin_family = AF_INET;
-		saddr.sin_port = htons(port);
-		saddr.sin_addr.s_addr = INADDR_ANY;
-
-		SC_CHK(bind, sfd, (struct sockaddr *)&saddr, sizeof(saddr));
-
 		socklen_t slen;
 
 		signed char buf[3];
