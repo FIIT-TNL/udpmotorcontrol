@@ -8,23 +8,7 @@
 #include <string.h>
 
 #include "scchk.h"
-
-void setdir(int dir, int m1, int m2) {
-	char c = '0' + dir;
-	write(m1, &c, 1);
-	c = '0' + !dir;
-	write(m2, &c, 1);
-}
-
-int openGPIO(const char *number) {
-	static char path[256] = "/sys/devices/virtual/gpio/gpio";
-	size_t pinlen = strlen(number);
-
-	strcpy(path + 30, number);
-	strcpy(path + 30 + pinlen, "/value");
-
-	return open(path, O_WRONLY);
-}
+#include "dcdriver.h"
 
 int main(int argc, char **argv) {
 	try {
@@ -35,10 +19,8 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		int mA0 = SC_CHK(openGPIO, argv[1]);
-		int mA1 = SC_CHK(openGPIO, argv[2]);
-		int mB0 = SC_CHK(openGPIO, argv[3]);
-		int mB1 = SC_CHK(openGPIO, argv[4]);
+		DCDriver motorA(0, argv[1], argv[2]);
+		DCDriver motorB(0, argv[3], argv[4]);
 		
 		if(argc > 5) sscanf(argv[5], "%hu", &port);
 
@@ -51,8 +33,6 @@ int main(int argc, char **argv) {
 
 		SC_CHK(bind, sfd, (struct sockaddr *)&saddr, sizeof(saddr));
 
-		int mAlastdir = 2, mBlastdir = 2;
-
 		socklen_t slen;
 
 		signed char buf[3];
@@ -63,21 +43,14 @@ int main(int argc, char **argv) {
 			int left = buf[0];
 			int right = buf[1];
 
-			if((left > 0) != mAlastdir) {
-				mAlastdir = left > 0;
-				setdir(mAlastdir, mA0, mA1);
-			}
-
-			if((right > 0) != mBlastdir) {
-				mBlastdir = left > 0;
-				setdir(mBlastdir, mB0, mB1);
-			}
+			motorA.setDirection(left > 0?DCDriver::Forward:DCDriver::Backward);
+			motorB.setDirection(right > 0?DCDriver::Forward:DCDriver::Backward);
 
 			if(left < 0) left = -left;
 			if(right < 0) right = -right;
 
-			printf("0=%d%%\n1=%d%%\n", left, right);
-			fflush(stdout);
+			motorA.setSpeed(left);
+			motorB.setSpeed(right);
 		}
 
 		return 0;
