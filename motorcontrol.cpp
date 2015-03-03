@@ -6,9 +6,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <poll.h>
 
 #include "scchk.h"
-#include "dcdriver.h"
+#include "packetreader.h"
+
+#define MAXPACKET 128
 
 int setupUDP(unsigned short port) {
 	int sfd = SC_CHK(socket, AF_INET, SOCK_DGRAM, 0);
@@ -33,31 +36,32 @@ int main(int argc, char **argv) {
 		}
 
 		DCDriver motorA(0, argv[1], argv[2]);
-		DCDriver motorB(0, argv[3], argv[4]);
+		DCDriver motorB(1, argv[3], argv[4]);
 		
 		if(argc > 5) sscanf(argv[5], "%hu", &port);
 
-		int sfd = setupUDP(port);
+		struct pollfd pfd;
+		pfd.fd = setupUDP(port);
+		pfd.events = POLLIN | POLLPRI;
+
+		PacketReader reader(pfd.fd, motorA, motorB);
+
+		unsigned int timeoutCnt = 0;
 
 		struct sockaddr_in saddr;
-		socklen_t slen;
-
-		signed char buf[3];
+		reader.readPacket(&saddr);
 		while(1) {
-			slen = sizeof(saddr);
-			SC_CHK(recvfrom, sfd, buf, 3, 0, (struct sockaddr *)&saddr, &slen);
-			SC_CHK(sendto, sfd, buf + 2, 1, 0, (struct sockaddr *)&saddr, slen);
-			int left = buf[0];
-			int right = buf[1];
-
-			motorA.setDirection(left > 0?DCDriver::Forward:DCDriver::Backward);
-			motorB.setDirection(right > 0?DCDriver::Forward:DCDriver::Backward);
-
-			if(left < 0) left = -left;
-			if(right < 0) right = -right;
-
-			motorA.setSpeed(left);
-			motorB.setSpeed(right);
+			if(SC_CHK(poll, &pfd, 1, 200)) {
+				reader.readPacket();
+				timeoutCnt = 0;
+			} else {
+				++timeoutCnt;
+				if(timeoutCnt > 4) {
+					motorA.setSpeed(0);
+					motorB.setSpeed(0);
+				}
+			}
+			sendto(pfd.fd, "Hello world!", 13, 0, (struct sockaddr *)&saddr, sizeof(struct sockaddr_in));
 		}
 
 		return 0;
