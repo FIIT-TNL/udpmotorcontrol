@@ -62,7 +62,12 @@ void PacketReader::parseDCCmd(const signed char *packet) {
 }
 
 void PacketReader::parseServoCmd(const signed char *packet) {
-	
+	unsigned int vert = packet[1];
+	unsigned int horiz = packet[2];
+
+	printf("%d=%u%%\n", 2, vert);
+	printf("%d=%u%%\n", 3, horiz);
+	fflush(stdout);                                  
 }
 
 void PacketReader::parsePing(const signed char *packet) {
