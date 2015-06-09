@@ -6,6 +6,7 @@
 #include <netinet/ip.h>
 
 #include <cstdio>
+#include <cstring>
 
 #include "scchk.h"
 
@@ -24,9 +25,8 @@ PacketReader::~PacketReader() {
 
 
 void PacketReader::readPacket() {
-	signed char buf[256];
-	SC_CHK(::read, mFD, buf, 256);
-	parsePacket(buf);
+	struct sockaddr_in saddr;
+	readPacket(&saddr);
 }
 
 void PacketReader::readPacket(struct sockaddr_in *saddr) {
@@ -34,17 +34,23 @@ void PacketReader::readPacket(struct sockaddr_in *saddr) {
 	signed char buf[256];
 	SC_CHK(::recvfrom, mFD, buf, 256, 0, (struct sockaddr *)saddr, &slen);
 	fprintf(stderr, "packet received\n");
-	parsePacket(buf);
+	parsePacket(buf, saddr);
 }
 
-void PacketReader::parsePacket(const signed char *packet) {
+void PacketReader::parsePacket(const signed char *packet, const struct sockaddr_in *saddr) {
 	switch((PacketReader::PacketType)packet[0]) {
 		case Ping:
 			parsePing(packet + 1);
+			break;
 		case DCControl:
 			parseDCCmd(packet + 1);
+			break;
 		case ServoControl:
 			parseServoCmd(packet + 1);
+			break;
+		case Discover:
+			parseDiscover(packet + 1, saddr);
+			break;
 	}
 }
 
@@ -72,5 +78,11 @@ void PacketReader::parseServoCmd(const signed char *packet) {
 
 void PacketReader::parsePing(const signed char *packet) {
 	
+}
+
+void PacketReader::parseDiscover(const signed char *packet, const struct sockaddr_in *saddr) {
+	if(strcmp((char *)packet, "FIIT_TechNoLogic_Motorcontrol_Discover"))
+		return;
+	SC_CHK(::sendto, mFD, "FIIT_TechNoLogic_Motorcontrol_ACK", 33, 0, (const struct sockaddr *)saddr, sizeof(struct sockaddr_in));
 }
 

@@ -17,7 +17,7 @@ int openGPIO(const char *number) {
 	strcpy(path + 30, number);
 	strcpy(path + 30 + pinlen, "/value");
 
-	return open(path, O_WRONLY);
+	return open(path, O_WRONLY | O_CLOEXEC);
 }
 
 DCDriver::DCDriver(int pwmID, const char *pin1, const char *pin2) : mPwmID(pwmID), mDir(None) {

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <poll.h>
+#include <arpa/inet.h>
 
 #include "scchk.h"
 #include "packetreader.h"
@@ -14,7 +15,7 @@
 #define MAXPACKET 128
 
 int setupUDP(unsigned short port) {
-	int sfd = SC_CHK(socket, AF_INET, SOCK_DGRAM, 0);
+	int sfd = SC_CHK(socket, AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
 
 	struct sockaddr_in saddr;
 	saddr.sin_family = AF_INET;
@@ -48,8 +49,15 @@ int main(int argc, char **argv) {
 
 		unsigned int timeoutCnt = 0;
 
+		/*
 		struct sockaddr_in saddr;
-		reader.readPacket(&saddr);
+		saddr.sin_family = AF_INET;
+		saddr.sin_port = htons(7777);
+		inet_aton("", &saddr.sin_addr);
+		*/
+
+		//reader.readPacket(&saddr);
+		reader.readPacket();
 		while(1) {
 			if(SC_CHK(poll, &pfd, 1, 200)) {
 				reader.readPacket();
@@ -61,7 +69,7 @@ int main(int argc, char **argv) {
 					motorB.setSpeed(0);
 				}
 			}
-			sendto(pfd.fd, "Hello world!", 13, 0, (struct sockaddr *)&saddr, sizeof(struct sockaddr_in));
+			//sendto(pfd.fd, "Hello world!", 13, 0, (struct sockaddr *)&saddr, sizeof(struct sockaddr_in));
 		}
 
 		return 0;
