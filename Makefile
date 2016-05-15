@@ -5,7 +5,7 @@ all: motorcontrol
 clean:
 	rm -f motorcontrol *.o
 
-motorcontrol: motorcontrol.o dcdriver.o scchk.o packetreader.o
+motorcontrol: motorcontrol.o dcdriver.o servodriver.o scchk.o packetreader.o
 	$(CXX) $(LDFLAGS) -o $@ $^
 
 %.o: %.cpp

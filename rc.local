@@ -1,0 +1,131 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# Print the IP address
+_IP=$(hostname -I) || true
+if [ "$_IP" ]; then
+  printf "My IP address is %s\n" "$_IP"
+fi
+
+#while :;
+#do
+	#if [ `cat /sys/class/net/eth0/carrier` -eq 1 ];
+	#then
+		#ifdown --force eth0
+		#ifup eth0
+		#if ifconfig eth0 | grep -q 'inet addr:';
+		#then
+			#sleep 10
+			#echo 0 > /sys/devices/virtual/gpio/gpio$SIG_PIN/value
+		#else
+			#ifconfig eth0 192.168.129.1
+			#echo 0 > /sys/devices/virtual/gpio/gpio$SIG_PIN/value
+		#fi
+		#while [ `cat /sys/class/net/eth0/carrier` -eq 1 ];
+		#do
+			#sleep 10
+		#done
+	#fi
+	#sleep 1
+#done &
+
+while :;
+do
+	if ifconfig eth0 | grep -q 'inet addr:';
+	then
+		sleep 1m
+	else
+		ifdown --force wlan0
+		ifup wlan0
+		sleep 1m
+	fi
+done &>/dev/null &
+
+#/home/pi/PiBits/ServoBlaster/user/servod --p1pins=32
+#sleep 1
+#/home/pi/udpmotorcontrol/motorcontrol > /dev/servoblaster 2>/dev/null &
+
+##################
+# OLD DriVR 
+##################
+#for PIN in 17 27 22 5 6 13 23 25; do echo $PIN > /sys/class/gpio/export; done
+#sleep 1
+#for PIN in 17 27 22 5 6 13 23 25; do echo out > /sys/class/gpio/gpio$PIN/direction; done
+#sleep 1
+#echo 1 > /sys/class/gpio/gpio27/value
+#echo 1 > /sys/class/gpio/gpio6/value
+
+#iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+#iptables -A FORWARD -i eth0 -j ACCEPT
+
+#sleep 1
+#sudo -u pi /home/pi/udpmotorcontrol/motorcontrol 17 22 5 13 &>/dev/null &
+
+#/usr/local/bin/bcastlistener 8080 &> /var/log/bcastlistener.log &
+#exit 0
+
+##################
+# NEW DriVR 
+##################
+
+#for PIN in 17 27 22 5 6 13 23 25; do echo $PIN > /sys/class/gpio/export; done
+#sleep 1
+#for PIN in 17 27 22 5 6 13 23 25; do echo out > /sys/class/gpio/gpio$PIN/direction; done
+#sleep 1
+#echo 1 > /sys/class/gpio/gpio27/value
+#echo 1 > /sys/class/gpio/gpio6/value
+
+/home/pi/sensor/setup_gpios.sh
+
+# SERVOS
+killall servod
+# original servoblaster config (--cycle-time=20000us
+#sudo servod --p1pins=32 --min=800us --max=2200us --dma=12
+# use half of all values because  pi-blaster probably cause 2times bigger values
+#sudo servod --p1pins=32 --min=400us --max=1100us --dma=12 --cycle-time=10000us
+
+# stary plosak 
+#sudo servod --p1pins=32,40 --min=300us --max=1200us --dma=12 --cycle-time=10000us
+
+# stary plosak 
+sleep 0.5
+sudo servod --p1pins=40,38 --min=300us --max=1200us --dma=12 --cycle-time=10000us --invert
+sleep 1 
+
+# DC Motors
+killall pi-blaster
+pi-blaster
+sleep 1
+
+# enable motor2
+#echo 27=1 > /dev/pi-blaster  # use pi-blaster to set permanent 1
+
+# Forwarding for rpi-slave
+iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+iptables -A FORWARD -i eth0 -j ACCEPT
+
+
+######################################
+
+
+# start controller
+sleep 1
+sudo -u pi /home/pi/udpmotorcontrol/motorcontrol 27 17 22 0 1 670 890 300 1200 &>/dev/null &
+#sudo -u pi /home/pi/udpmotorcontrol/run.sh &>/dev/null &
+
+/usr/local/bin/bcastlistener 8080 &> /var/log/bcastlistener.log &
+
+#################
+# END DriVR
+#################
+exit 0
