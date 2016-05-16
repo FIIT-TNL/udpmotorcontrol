@@ -85,7 +85,7 @@ done &>/dev/null &
 #echo 1 > /sys/class/gpio/gpio27/value
 #echo 1 > /sys/class/gpio/gpio6/value
 
-/home/pi/sensor/setup_gpios.sh
+/home/pi/udpmotorcontrol/setup_gpios.sh
 
 # SERVOS
 killall servod
